@@ -1,0 +1,4 @@
+files/trainer.py plagiat1/trainer.py
+files/trainer.py plagiat2/trainer.py
+files/auto.py plagiat2/auto.py
+files/tft.py plagiat2/tft.py
