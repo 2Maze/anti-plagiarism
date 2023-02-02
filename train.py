@@ -5,7 +5,7 @@ import re
 import math
 import pickle
 
-from typing import Callable, Any, Sequence, Union
+from typing import Callable, Any, Sequence
 from os.path import join
 from random import sample
 from copy import deepcopy
@@ -13,46 +13,27 @@ from copy import deepcopy
 
 class LogisticRegression(object):
     """Logistic regression for binary classification"""
-
-
-    def __init__(
-        self, lr: float = 1e-3,
-        max_iterations: int = 100,
-        stop_criterion: float = 1e-4,
-        use_bias: bool = True, 
-        l1_coef: float = 0.,
-        l2_coef: float = 0., 
-        optimization: Union[str, None] = None,
-        minibatch_size: int = 100,
-        weight_init: Union[Callable[[int], list[float]], None] = None) -> None:
-
-
+    
+    def __init__(self, lr=1e-3, iterations=1000, use_bias=True) -> None:
+        """Hyperparameters init"""
         self.is_trained = False
-        self.max_iterations = max_iterations
-        self.stop_criterion = stop_criterion
+        self.iterations = iterations
         self.use_bias = use_bias
         self.lr = lr
-        self.l1_coef = l1_coef
-        self.l2_coef = l2_coef
-        self.optimization = optimization
-        self.minibatch_size = minibatch_size
-        self.weight_init = weight_init
 
     def _init_param(self, features_count: int) -> None:
-
+        """Private function for initialize params"""
+        # if use bias then append new weights which will be bias
         if self.use_bias:
             self.features_count = features_count + 1
         else:
             self.features_count = features_count
         
-        if self.weight_init != None:
-            self._w = self.weight_init(self.features_count)
-        else:
-            self._w = [0 for _ in range(self.features_count)]
+        self._w = [0 for _ in range(self.features_count)]
         
 
     def _preprocess_data(self, X, y) -> tuple[list[list[float]], list[float]]:
-        """Called after receiving data"""
+        """Called before after receiving data"""
         X = deepcopy(X)
         y = deepcopy(y)
 
@@ -73,7 +54,6 @@ class LogisticRegression(object):
         """
         assert len(X) == len(y), "Count element X and y must be the same size"
 
-
         self.metrics = metrics
         self._init_param(len(X[0]))
         X, y = self._preprocess_data(X, y)
@@ -83,6 +63,10 @@ class LogisticRegression(object):
     def _fit(self, X, y, metrics: list[Callable[[list[float], list[float]], float]] = None) -> None:
         """Private function for fit model"""
 
+        def sigmoid(x: float) -> float:
+            """Sigmoid function"""
+            return 1. / (1. + math.e**-x)
+        
         def cross_entropy(y_true, y_pred, eps=1e-4):
             """Cross entropy loss function"""
             if 1 - y_pred == 0:
@@ -101,7 +85,7 @@ class LogisticRegression(object):
             gradient = [0 for _ in range(len(self._w))]
 
             for x, y_true in zip(X, y):
-                y_pred = self._sigmoid(sum([x[i] * self._w[i] for i in range(len(self._w))]))
+                y_pred = sigmoid(sum([x[i] * self._w[i] for i in range(len(self._w))]))
                 loss = cross_entropy(y_true, y_pred)
                 all_loss += loss
                 
@@ -111,23 +95,16 @@ class LogisticRegression(object):
             self._w = [w_i - self.lr * g_i for w_i, g_i in zip(self._w, gradient)]
             return all_loss / len(X)
 
-        for iteration in range(self.max_iterations):
-            avg_loss = gradient_descent_step(X, y)
-            print(f"Iteration: {iteration+1}/{self.max_iterations}, Loss: {avg_loss}", end="; ")
+        for iteration in range(self.iterations):
+            print(f"Iteration: {iteration+1}/{self.iterations}, Loss: {gradient_descent_step(X, y)}", end="; ")
             if metrics:
                 for metric in metrics:
-                    print(f"{metric.__name__} - {metric(y, [self._sigmoid(sum([x[i] * self._w[i] for i in range(len(self._w))])) for x in X])}", end=' ')
+                    print(f"{metric.__name__} - {metric(y, [sigmoid(sum([x[i] * self._w[i] for i in range(len(self._w))])) for x in X])}", end=' ')
 
                 print()
             else:
                 print()
 
-    def regularization(self):
-        pass
-
-    def _sigmoid(self, x: float) -> float:
-        """Sigmoid function"""
-        return 1. / (1. + math.e**-x)
 
     def _compute_gradient(self, x, y_pred, y_true) -> list[float]:
         """Computer gradient"""
@@ -144,9 +121,13 @@ class LogisticRegression(object):
         
         X, _ = self._preprocess_data(X, [])
 
+        def sigmoid(x: float) -> float:
+            """Sigmoid function"""
+            return 1. / (1. + math.e**-x)
+
         y = []
         for x in X:
-            y_pred = self._sigmoid(sum([x[i] * self._w[i] for i in range(len(self._w))]))
+            y_pred = sigmoid(sum([x[i] * self._w[i] for i in range(len(self._w))]))
             y.append(y_pred)
         return y
 
@@ -156,9 +137,13 @@ class LogisticRegression(object):
         
         X, _ = self._preprocess_data(X, [])
 
+        def sigmoid(x: float) -> float:
+            """Sigmoid function"""
+            return 1. / (1. + math.e**-x)
+
         y = []
         for x in X:
-            y_pred = self._sigmoid(sum([x[i] * self._w[i] for i in range(len(self._w))]))
+            y_pred = sigmoid(sum([x[i] * self._w[i] for i in range(len(self._w))]))
             if y_pred >= boundary:
                 y.append(1)
             else:
